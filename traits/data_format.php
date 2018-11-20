@@ -11,7 +11,7 @@ trait data_format {
 	 * @var data_format|null $format
 	 */
 	protected $format = null;
-	public function select_format($format) {
+	protected function select_format($format) {
 		$structure = $this->get_structure();
 		if(file_exists(__DIR__.'/../classes/formats/'.$format.'.php')) {
 			require_once __DIR__.'/../classes/formats/'.$format.'.php';
@@ -48,13 +48,6 @@ trait data_format {
 		}
 	}
 
-	public function select() {
-		if(!is_null($this->format)) {
-			$this->format->refresh_structure($this->get_structure());
-			$this->format->select();
-		}
-	}
-
 	public function save() {
 		if(!is_null($this->format)) {
 			$this->format->refresh_structure($this->get_structure());
@@ -62,7 +55,7 @@ trait data_format {
 		}
 	}
 
-	public function refresh_structure($structure) {
+	protected function refresh_structure($structure) {
 		if(!is_null($this->format)) {
 			$this->format->refresh_structure($this->get_structure());
 			$this->format->refresh_structure($structure);

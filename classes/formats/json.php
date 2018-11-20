@@ -30,10 +30,6 @@ class json {
 		var_dump($this->structure);
 	}
 
-	public function select() {
-		var_dump($this->structure);
-	}
-
 	public function save() {
 		var_dump($this->structure);
 	}
