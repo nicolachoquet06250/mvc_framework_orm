@@ -19,13 +19,20 @@ trait dbcontext {
 		}
 		return $vars;
 	}
-	public function get($key) {
-		if(isset($this->$key)) return $this->$key;
+	public function get($key, $what = 'value') {
+		if(isset($this->$key)) {
+			return $this->$key[$what];
+		}
 		return null;
 	}
-	public function set($key, $value) {
+	public function set($key, $value, $what = 'value') {
 		if(isset($this->$key)) {
-			$this->$key['value'] = $value;
+			if($this->$key['type']['name'] === 'integer'
+			   || $this->$key['type']['name'] === 'int'
+			   ||  $this->$key['type']['name'] === 'numeric') {
+				$value = intval($value);
+			}
+			$this->$key[$what] = $value;
 			if($this->auto_save) $this->save();
 			return $this;
 		}

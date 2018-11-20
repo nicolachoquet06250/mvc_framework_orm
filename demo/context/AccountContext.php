@@ -10,7 +10,7 @@ class AccountContext {
 	use dbcontext;
 	use data_format;
 
-	protected $id = [
+	protected $id_account = [
 		'type' => [
 			'name' => 'integer',
 			'size' => 11,

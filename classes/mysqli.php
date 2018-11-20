@@ -3,6 +3,7 @@
 namespace mvc_framework\core\orm;
 
 
+use mvc_framework\core\orm\traits\dbcontext;
 use mvc_framework\core\orm\traits\SQL;
 
 class mysqli {
@@ -53,7 +54,21 @@ class mysqli {
 	}
 
 	public function fetch_object($class_name = \stdClass::class, $params = []) {
-		return $this->current_request->fetch_object($class_name, $params);
+		if(class_exists($class_name)) {
+			$objs = [];
+			while ($data = $this->fetch_assoc()) {
+				/**
+				 * @var dbcontext $data_obj
+				 */
+				$data_obj = new $class_name();
+				foreach ($data as $key => $value) {
+					$data_obj->set($key, $value);
+				}
+				$objs[] = $data_obj;
+			}
+			return $objs;
+		}
+		return null;
 	}
 
 	/**
