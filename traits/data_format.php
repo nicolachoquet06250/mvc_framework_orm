@@ -4,6 +4,8 @@ namespace mvc_framework\core\orm\traits;
 
 
 trait data_format {
+	public static $JSON = 'json';
+
 	/**
 	 * @var data_format|null $format
 	 */
@@ -18,26 +20,51 @@ trait data_format {
 	}
 
 	public function create_table($if_not_exisis = false) {
-		if(!is_null($this->format)) $this->format->create_table($if_not_exisis);
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->create_table($if_not_exisis);
+		}
 	}
 
 	public function insert() {
-		if(!is_null($this->format)) $this->format->insert();
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->insert();
+		}
 	}
 
 	public function update() {
-		if(!is_null($this->format)) $this->format->update();
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->update();
+		}
 	}
 
 	public function delete() {
-		if(!is_null($this->format)) $this->format->delete();
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->delete();
+		}
 	}
 
 	public function select() {
-		if(!is_null($this->format)) $this->format->select();
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->select();
+		}
 	}
 
 	public function save() {
-		if(!is_null($this->format)) $this->format->save();
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->save();
+		}
+	}
+
+	public function refresh_structure($structure) {
+		if(!is_null($this->format)) {
+			$this->format->refresh_structure($this->get_structure());
+			$this->format->refresh_structure($structure);
+		}
 	}
 }

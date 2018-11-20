@@ -16,11 +16,11 @@ try {
 		'table' => 'account',
 	]);
 	while (list($id, $email, $password, $nom, $prenom, $pseudo, $ip) = $mysqli->fetch_row()) {
-		var_dump($id, $email, $password, $nom, $prenom, $pseudo, $ip);
+//		var_dump($id, $email, $password, $nom, $prenom, $pseudo, $ip);
 	}
 
 	$account = new \mvc_framework\core\orm\dbcontext\AccountContext();
-	var_dump($account->get_structure());
+	$account->create_table(true);
 }
 catch (Exception $e) {
 	echo $e->getMessage()."\n";

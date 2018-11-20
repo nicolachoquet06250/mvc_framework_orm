@@ -9,6 +9,7 @@ use mvc_framework\core\orm\traits\dbcontext;
 class AccountContext {
 	use dbcontext;
 	use data_format;
+
 	protected $id = [
 		'type' => [
 			'name' => 'integer',
@@ -61,7 +62,8 @@ class AccountContext {
 		'default' => null,
 		'null' => false,
 	];
+
 	public function __construct() {
-		$this->select_format('json');
+		$this->select_format(data_format::$JSON);
 	}
 }

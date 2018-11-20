@@ -37,4 +37,8 @@ class json {
 		var_dump($this->structure);
 	}
 
+	public function refresh_structure($structure) {
+		$this->structure = $structure;
+	}
+
 }
