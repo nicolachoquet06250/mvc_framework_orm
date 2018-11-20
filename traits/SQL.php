@@ -73,6 +73,12 @@ trait SQL {
 
 	abstract public function query($request);
 
+	abstract public function fetch_row();
+	abstract public function fetch_array($result_type = MYSQLI_BOTH);
+	abstract public function fetch_assoc();
+	abstract public function fetch_object($class_name = \stdClass::class, $params = []);
+	abstract public function select_db($db);
+
 	// keywords
 	abstract public function add();
 	abstract public function constraint();
