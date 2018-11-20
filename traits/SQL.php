@@ -4,8 +4,9 @@ namespace mvc_framework\core\orm\traits;
 
 
 trait SQL {
-	public $is_connected;
-	protected $host, $user, $password, $db;
+	protected $is_connected = false;
+	protected $host = '', $username = '', $password = '', $db = '';
+	protected $query = [];
 
 	public static $ADD = '+';
 	public static $SUBTRACT = '-';
@@ -22,8 +23,6 @@ trait SQL {
 	public static $LESS_THAN_OR_EQUAL = '<=';
 	public static $NOT_EQUAL = '<>';
 
-	abstract public function connect();
-
 	/**
 	 * @param $key
 	 * @param $value
@@ -31,14 +30,48 @@ trait SQL {
 	 * @throws \Exception
 	 */
 	public function set_prop($key, $value) {
-		if(isset($this->$key)) {
+		if(isset($this->$key) ||
+		   (is_string($this->$key) && $this->$key === '') ||
+		   (is_array($this->$key) && empty($this->$key)) ||
+		   (is_bool($this->$key) && $this->$key === false)) {
 			$this->$key = $value;
 			return $this;
 		}
-		else {
-			throw new \Exception('Fatal : '.__CLASS__.'::$'.$key.' not found !');
-		}
+		else throw new \Exception('Fatal : '.__CLASS__.'::$'.$key.' not found !');
 	}
+
+	/**
+	 * @param $key
+	 * @return $this
+	 * @throws \Exception
+	 */
+	public function get_prop($key) {
+		if(isset($this->$key)) return $this->$key;
+		else throw new \Exception('Fatal : '.__CLASS__.'::$'.$key.' not found !');
+	}
+
+	/**
+	 * SQL constructor.
+	 *
+	 * @param array|connection_template $array
+	 */
+	public function __construct($array) {
+		if(is_object($array)) $array = $array->to_array;
+		$this->is_connected = $this->connect($array);
+	}
+	/**
+	 * @return boolean
+	 */
+	public function is_connected() {
+		return $this->is_connected;
+	}
+	public function get_query() {
+		return $this->query;
+	}
+
+	abstract protected function connect(array $array): bool ;
+
+	abstract public function query($request);
 
 	// keywords
 	abstract public function add();
@@ -70,7 +103,7 @@ trait SQL {
 	abstract public function exec();
 	abstract public function exists();
 	abstract public function foreign();
-	abstract public function from();
+	abstract public function from($table);
 	abstract public function full();
 	abstract public function join();
 	abstract public function group();
@@ -80,7 +113,7 @@ trait SQL {
 	abstract public function inner();
 	abstract public function insert();
 	abstract public function into();
-	abstract public function select();
+	abstract public function select($fields);
 	abstract public function is();
 	abstract public function null();
 	abstract public function not();
@@ -136,6 +169,7 @@ trait SQL {
 	abstract public static function trim();
 	abstract public static function ucase();
 	abstract public static function upper();
+
 
 	// TODO numeric functions
 	// TODO dates functions
