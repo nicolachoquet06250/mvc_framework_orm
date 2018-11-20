@@ -53,6 +53,11 @@ class mysqli {
 		return $this->current_request->fetch_assoc();
 	}
 
+	/**
+	 * @param string $class_name
+	 * @param array $params
+	 * @return \mvc_framework\core\orm\traits\dbcontext[]|null
+	 */
 	public function fetch_object($class_name = \stdClass::class, $params = []) {
 		if(class_exists($class_name)) {
 			$objs = [];

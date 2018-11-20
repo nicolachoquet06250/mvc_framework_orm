@@ -3,12 +3,10 @@
 namespace mvc_framework\core\orm\dbcontext;
 
 
-use mvc_framework\core\orm\traits\data_format;
 use mvc_framework\core\orm\traits\dbcontext;
 
 class AccountContext {
 	use dbcontext;
-	use data_format;
 
 	protected $id_account = [
 		'type' => [
@@ -54,7 +52,7 @@ class AccountContext {
 		],
 		'default' => null,
 		'null' => false,
-	], $ip = [
+	], $IP = [
 		'type' => [
 			'name' => 'varchar',
 			'size' => 255,
@@ -62,8 +60,4 @@ class AccountContext {
 		'default' => null,
 		'null' => false,
 	];
-
-	public function __construct() {
-		$this->select_format(data_format::$MYSQLI);
-	}
 }

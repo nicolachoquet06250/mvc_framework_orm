@@ -15,12 +15,9 @@ try {
 	$mysqli->query('SELECT * FROM `?table`', [
 		'table' => 'account',
 	]);
-	/**
-	 * @var \mvc_framework\core\orm\dbcontext\AccountContext[] $accounts
-	 */
+	/** @var \mvc_framework\core\orm\dbcontext\AccountContext[] $accounts */
 	$accounts = $mysqli->fetch_object(\mvc_framework\core\orm\dbcontext\AccountContext::class);
-	var_dump($accounts[0]->get('id_account'));
-//	$accounts[0]->create_table(true);
+	$accounts[0]->create_table(true);
 }
 catch (Exception $e) {
 	echo $e->getMessage()."\n";

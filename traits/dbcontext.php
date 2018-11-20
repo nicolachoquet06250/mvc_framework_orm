@@ -4,14 +4,13 @@ namespace mvc_framework\core\orm\traits;
 
 
 trait dbcontext {
+	use data_format;
 	protected $auto_save = false;
-	abstract public function create_table($if_not_exisis = false);
-	abstract public function insert();
-	abstract public function update();
-	abstract public function delete();
-	abstract public function select();
-	abstract public function save();
 
+	public function __construct($format = null) {
+		if(is_null($format)) $format = data_format::$MYSQLI;
+		$this->select_format($format);
+	}
 	public function get_structure() {
 		$vars = [];
 		foreach (get_object_vars($this) as $var => $value) {
