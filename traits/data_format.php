@@ -5,6 +5,8 @@ namespace mvc_framework\core\orm\traits;
 
 trait data_format {
 	public static $JSON = 'json';
+	public static $MYSQLI = 'mysql';
+	public static $MYSQL = 'mysql';
 
 	/**
 	 * @var data_format|null $format

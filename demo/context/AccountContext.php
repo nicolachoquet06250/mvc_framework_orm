@@ -64,6 +64,6 @@ class AccountContext {
 	];
 
 	public function __construct() {
-		$this->select_format(data_format::$JSON);
+		$this->select_format(data_format::$MYSQLI);
 	}
 }

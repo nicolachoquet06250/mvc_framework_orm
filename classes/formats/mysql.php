@@ -5,12 +5,12 @@ namespace mvc_framework\core\orm\data_formats;
 
 use mvc_framework\core\orm\traits\data_format;
 
-class json {
+class mysql {
 	use data_format;
 	public $structure;
 
 	public function __construct($structure) {
-		var_dump('format json');
+		var_dump('format mysql');
 		$this->refresh_structure($structure);
 	}
 
