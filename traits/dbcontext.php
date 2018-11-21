@@ -6,10 +6,12 @@ namespace mvc_framework\core\orm\traits;
 trait dbcontext {
 	use data_format;
 	protected $auto_save = false;
+	protected $connection;
 
-	public function __construct($format = null) {
+	public function __construct($connection, $format = null) {
 		if(is_null($format)) $format = data_format::$MYSQLI;
 		$this->select_format($format);
+		$this->set_connection($connection);
 	}
 	public function get_structure() {
 		$vars = [];

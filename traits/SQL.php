@@ -42,7 +42,7 @@ trait SQL {
 
 	/**
 	 * @param $key
-	 * @return $this
+	 * @return mixed
 	 * @throws \Exception
 	 */
 	public function get_prop($key) {
@@ -71,7 +71,7 @@ trait SQL {
 
 	abstract protected function connect(array $array): bool ;
 
-	abstract public function query($request);
+	abstract public function query($request, $params = []);
 
 	abstract public function fetch_row();
 	abstract public function fetch_array($result_type = MYSQLI_BOTH);

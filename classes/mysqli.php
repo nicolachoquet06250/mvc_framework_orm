@@ -3,6 +3,7 @@
 namespace mvc_framework\core\orm;
 
 
+use mvc_framework\core\orm\traits\data_format;
 use mvc_framework\core\orm\traits\dbcontext;
 use mvc_framework\core\orm\traits\SQL;
 
@@ -65,7 +66,7 @@ class mysqli {
 				/**
 				 * @var dbcontext $data_obj
 				 */
-				$data_obj = new $class_name();
+				$data_obj = new $class_name($this, data_format::$JSON);
 				foreach ($data as $key => $value) {
 					$data_obj->set($key, $value);
 				}

@@ -16,6 +16,7 @@ class AccountContext {
 		'default' => null,
 		'null' => false,
 		'autoincrement' => true,
+		'unique' => true,
 		'key' => 'primary',
 	], $email = [
 		'type' => [
