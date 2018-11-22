@@ -4,6 +4,7 @@ namespace mvc_framework\core\orm;
 
 
 use mvc_framework\core\orm\traits\SQL;
+use PHPSQLParser\PHPSQLParser;
 
 class json {
 	use SQL;
@@ -43,80 +44,89 @@ class json {
 					$request = str_replace('?'.$key, $param, $request);
 				}
 			}
-			$this->query = $request;
-
-			foreach ($this->regexes as $name => $regex) {
-				preg_match($regex, $request, $matches);
-				if($matches && in_array($name, get_class_methods($this))) $this->$name($matches);
+			$parser = new PHPSQLParser($request);
+			$parsed_keys = array_keys($parser->parsed);
+			if(in_array('CREATE', $parsed_keys) && in_array('TABLE', $parsed_keys)) {
+				$if_not_exists = strstr($parser->parsed['CREATE']['base_expr'], 'IF NOT EXISTS');
+				$table = $parser->parsed['TABLE']['no_quotes']['parts'][0];
+				$structure = $parser->parsed['TABLE']['create-def']['sub_tree'];
+				$this->create_table($if_not_exists, $table, $structure);
+			}
+			elseif (in_array('SELECT', $parsed_keys)) {
+				$this->select_table($parser->parsed['FROM'][0]['no_quotes']['parts'][0], $parser->parsed);
+				ob_start();
+				var_dump($parser->parsed);
+				$var_dump = ob_get_contents();
+				ob_clean();
+				file_put_contents(__DIR__.'/../test.txt', $var_dump);
 			}
 		}
 	}
 
-	private function create_table($matches) {
-		unset($matches[0]);
-		$table = [
-			'table' => $matches[4],
-			'primary_key' => $matches[6],
-			'structure' => [],
-		];
-		$structure_lines = explode("\n\t", $matches[5]);
-		unset($structure_lines[0]);
+	private function create_table($if_not_exists, $table, $structure) {
+		$struct = [];
+		foreach ($structure as $field) {
+			if($field['expr_type'] === 'column-def') {
+				$field_name = $field['sub_tree'][0]['no_quotes']['parts'][0];
+				$type_name = $field['sub_tree'][1]['sub_tree'][0]['base_expr'];
+				$default_type_size = $field['sub_tree'][1]['sub_tree'][0]['length'];
+				if($field['sub_tree'][1]['sub_tree'][1]['expr_type'] === 'bracket_expression')
+					$type_size = intval($field['sub_tree'][1]['sub_tree'][1]['sub_tree'][0]['base_expr']);
+				else $type_size = intval($default_type_size);
 
-		foreach ($structure_lines as $structure_line) {
-			preg_match($this->regex_create_table__structure, $structure_line, $_matches);
-			if($_matches) {
-				unset($_matches[0]);
-				$table['structure'][$_matches[1]] = [
+				$struct[$field_name] = [
 					'type' => [
-						'name' => $_matches[2],
-						'size' => intval($_matches[4]),
+						'name' => $type_name,
+						'size' => $type_size,
 					],
 				];
-				$table['structure'][$_matches[1]]['default'] = in_array('DEFAULT', $_matches) ? $_matches[7] : null;
-				$table['structure'][$_matches[1]]['null'] = in_array('NOT NULL', $_matches) ? false : true;
-				$table['structure'][$_matches[1]]['autoincrement'] = in_array('AUTO_INCREMENT', $_matches) || in_array('auto_increment', $_matches);
-				$table['structure'][$_matches[1]]['unique'] = in_array('AUTO_INCREMENT', $_matches) || in_array('auto_increment', $_matches) || in_array('UNIQUE', $_matches);
-				if($_matches[1] === $table['primary_key']) {
-					$table['structure'][$_matches[1]]['key'] = 'primary';
-				}
-
-				if(!$table['structure'][$_matches[1]]['unique']) {
-					unset($table['structure'][$_matches[1]]['unique']);
-				}
-				if(!$table['structure'][$_matches[1]]['autoincrement']) {
-					unset($table['structure'][$_matches[1]]['autoincrement']);
-				}
+				$struct[$field_name]['null'] = $field['sub_tree'][1]['nullable'];
+				if($field['sub_tree'][1]['unique'])
+					$struct[$field_name]['unique'] = true;
+				if($field['sub_tree'][1]['auto_inc'])
+					$struct[$field_name]['autoincrement'] = true;
+				if($field['sub_tree'][1]['primary'])
+					$struct[$field_name]['key'] = 'primary';
+				$struct[$field_name]['default'] = isset($field['sub_tree'][1]['default']) ? $field['sub_tree'][1]['default'] : null;
+			}
+			elseif ($field['expr_type'] === 'primary-key') {
+				$field_name = $field['sub_tree'][2]['sub_tree'][0]['no_quotes']['parts'][0];
+				$struct[$field_name]['key'] = 'primary';
 			}
 		}
-		$if_not_exists = in_array('IF NOT EXISTS ', $matches);
-		if(!is_null($this->connection)) {
-			if($if_not_exists) {
-				if(!is_file($this->connection.'/'.$table['table'].'.json')) {
-					file_put_contents($this->connection.'/'.$table['table'].'.json', json_encode(
-						[
-							'structure' => $table['structure'],
-							'body' => [],
-						]
-					));
-				}
-			}
-			else {
-				file_put_contents($this->connection.'/'.$table['table'].'.json', json_encode(
-					[
-						'structure' => $table['structure'],
-						'body' => [],
-					]
-				));
-			}
+
+		if($if_not_exists && !is_file($this->connection.'/'.$table.'.json'))
+			file_put_contents($this->connection.'/'.$table.'.json', json_encode(
+				[
+					'structure' => $struct,
+					'body' => [],
+				]
+			));
+		else {
+			$this->drop_table($table);
+			file_put_contents($this->connection.'/'.$table.'.json', json_encode(
+				[
+					'structure' => $struct,
+					'body' => [],
+				]
+			));
 		}
 	}
 
-	private function select_simple($matches) {
-		unset($matches[0]);
+	private function select_table($table, $complete_request) {
+		$fields_to_select = [];
+		foreach ($complete_request['SELECT'] as $field_to_select) {
+			$alias = $field_to_select['alias'] === false ? null : $field_to_select['alias']['no_quotes']['parts'][0];
+			$field = $field_to_select['no_quotes']['parts'][0];
+			$fields_to_select[$field] = $alias;
+		}
+		var_dump($fields_to_select);
+		var_dump($table);
 	}
 
-	private function drop_table($matches) {
-		unset($matches[0]);
+	private function drop_table($table) {
+		$path = $this->connection.'/'.$table.'.json';
+		if(is_file($path)) unlink($path);
 	}
 
 	public function fetch_row() {

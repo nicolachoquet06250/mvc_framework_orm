@@ -62,8 +62,6 @@ class json {
 		$query_create = $if_not_exists ? str_replace('${if_not_exists}', 'IF NOT EXISTS ', $query_create) : str_replace('${if_not_exists}', '', $query_create);
 
 		if(!$if_not_exists) $this->connection->query($query_drop);
-		$parser = new PHPSQLParser($query_create);
-		var_dump($parser->parsed);
 		$this->connection->query($query_create);
 	}
 
