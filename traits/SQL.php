@@ -40,6 +40,14 @@ trait SQL {
 		else throw new \Exception('Fatal : '.__CLASS__.'::$'.$key.' not found !');
 	}
 
+	public function get_format() {
+		$class = __CLASS__;
+		$class = explode('\\', $class);
+		$class = $class[count($class)-1];
+		$format = data_format::${strtoupper($class)};
+		return $format;
+	}
+
 	/**
 	 * @param $key
 	 * @return mixed

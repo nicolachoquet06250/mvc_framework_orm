@@ -3,6 +3,8 @@
 namespace mvc_framework\core\orm;
 
 
+use mvc_framework\core\orm\traits\data_format;
+use mvc_framework\core\orm\traits\dbcontext;
 use mvc_framework\core\orm\traits\SQL;
 use PHPSQLParser\PHPSQLParser;
 
@@ -14,13 +16,6 @@ class json {
 	protected $select_result;
 
 	protected $database = '', $base_directory = '';
-
-	private $regex_create_table__structure = '/([a-zA-Z0-9\_]+)\ ([a-zA-Z\_]+)([\(]?([0-9]+)?[\)]?)\ (NOT NULL|not null)?[\ ]?(DEFAULT [\"]?([a-zA-Z0-9\_\ \-\?\!\<\>\,\;\:\/]+)[\"]?)?[\ ]?(AUTO_INCREMENT|auto_increment)?\,/m';
-	private $regexes = [
-		'select_simple' => '/(SELECT)\ ([a-zA-Z0-9\*\_]+)\ (FROM)\ [\`]?([a-zA-Z0-9\_]+)?[\`]?[\.]?[\`]?([a-zA-Z0-9\_]+)[\`]?[\;]?/m',
-		'create_table' => '/(CREATE TABLE)\ (IF NOT EXISTS )?([\`]?[a-zA-Z0-9\_]+[\`]?\.)?[\`]?([a-zA-Z0-9\_]+)[\`]?[\ ]?\(([\n\ta-zA-Z0-9\_\(\)\ \,]+)\n[\ |\t]{0,8}PRIMARY KEY \([\`]?([a-zA-Z0-9\_]+)[\`]?\)\n\)/m',
-		'drop_table' => '/(DROP TABLE)\ [\`]?([a-zA-Z0-9\_]+)?[\`]?[\.]?[\`]?([a-zA-Z0-9\_]+)[\`]?/m',
-	];
 
 	/**
 	 * @param array $array
@@ -46,21 +41,49 @@ class json {
 			}
 			$parser = new PHPSQLParser($request);
 			$parsed_keys = array_keys($parser->parsed);
+
+			$this->write_parsed_in_text($parser->parsed);
+
 			if(in_array('CREATE', $parsed_keys) && in_array('TABLE', $parsed_keys)) {
-				$if_not_exists = strstr($parser->parsed['CREATE']['base_expr'], 'IF NOT EXISTS');
+				$if_not_exists = strstr($parser->parsed['CREATE']['base_expr'], 'IF NOT EXISTS') ? true : false;
 				$table = $parser->parsed['TABLE']['no_quotes']['parts'][0];
 				$structure = $parser->parsed['TABLE']['create-def']['sub_tree'];
 				$this->create_table($if_not_exists, $table, $structure);
 			}
+			elseif (in_array('DROP', $parsed_keys)) {
+				$table = $parser->parsed['DROP']['sub_tree'][1]['sub_tree'][0]['no_quotes']['parts'][0];
+				$this->drop_table($table);
+			}
+			elseif (in_array('INSERT', $parsed_keys)) {
+				$table = $parser->parsed['INSERT'][1]['no_quotes']['parts'][0];
+				$fields_list = $parser->parsed['INSERT'][2]['sub_tree'];
+				$values = $parser->parsed['VALUES'][0]['data'];
+				$this->insert_datas($table, $fields_list, $values);
+			}
+			elseif (in_array('DELETE', $parsed_keys) && in_array('FROM', $parsed_keys)) {
+				$table = $parser->parsed['FROM'][0]['no_quotes']['parts'][0];
+				$where = $parser->parsed['WHERE'];
+				$this->delete_line($table, $where);
+			}
+			elseif (in_array('UPDATE', $parsed_keys)) {
+				$table = $parser->parsed['UPDATE'][0]['no_quotes']['parts'][0];
+				$set = $parser->parsed['SET'];
+				$where = $parser->parsed['WHERE'];
+				$this->update_line($table, $set, $where);
+			}
 			elseif (in_array('SELECT', $parsed_keys)) {
-				$this->select_table($parser->parsed['FROM'][0]['no_quotes']['parts'][0], $parser->parsed);
-				ob_start();
-				var_dump($parser->parsed);
-				$var_dump = ob_get_contents();
-				ob_clean();
-				file_put_contents(__DIR__.'/../test.txt', $var_dump);
+				$table = $parser->parsed['FROM'][0]['no_quotes']['parts'][0];
+				$this->select_table($table, $parser->parsed);
 			}
 		}
+	}
+
+	private function write_parsed_in_text($parsed) {
+		ob_start();
+		var_dump($parsed);
+		$var_dump = ob_get_contents();
+		ob_clean();
+		file_put_contents(__DIR__.'/../test.txt', $var_dump);
 	}
 
 	private function create_table($if_not_exists, $table, $structure) {
@@ -102,26 +125,46 @@ class json {
 					'body' => [],
 				]
 			));
-		else {
-			$this->drop_table($table);
-			file_put_contents($this->connection.'/'.$table.'.json', json_encode(
-				[
-					'structure' => $struct,
-					'body' => [],
-				]
-			));
-		}
 	}
 
 	private function select_table($table, $complete_request) {
 		$fields_to_select = [];
 		foreach ($complete_request['SELECT'] as $field_to_select) {
-			$alias = $field_to_select['alias'] === false ? null : $field_to_select['alias']['no_quotes']['parts'][0];
-			$field = $field_to_select['no_quotes']['parts'][0];
-			$fields_to_select[$field] = $alias;
+			if($field_to_select['base_expr'] === '*') {
+				$fields_to_select = '*';
+				break;
+			}
+			else {
+				$alias                    = $field_to_select['alias'] === false ? null : $field_to_select['alias']['no_quotes']['parts'][0];
+				$field                    = $field_to_select['no_quotes']['parts'][0];
+				$fields_to_select[$field] = $alias;
+			}
 		}
-		var_dump($fields_to_select);
-		var_dump($table);
+		if(is_string($fields_to_select)) {
+			$class = '\mvc_framework\core\orm\dbcontext\\'.ucfirst($table).'Context';
+			$structure = array_keys($class::create($this)->get_structure());
+			foreach ($structure as $id => $field) {
+				$structure[$field] = null;
+				unset($structure[$id]);
+			}
+			$fields_to_select = $structure;
+		}
+		$table_content = json_decode(file_get_contents($this->connection.'/'.$table.'.json'), true);
+		$body = $table_content['body'];
+		if(!empty($body)) {
+			$_body = [];
+			foreach ($body as $line) {
+				$_body[] = [];
+				$max = count($_body)-1;
+				foreach ($fields_to_select as $field => $alias)
+					if(!is_null($alias))
+						$_body[$max][$alias] = $line[$field];
+					else
+						$_body[$max][$field] = $line[$field];
+			}
+			$body = $_body;
+		}
+		$this->select_result = $body;
 	}
 
 	private function drop_table($table) {
@@ -129,20 +172,124 @@ class json {
 		if(is_file($path)) unlink($path);
 	}
 
-	public function fetch_row() {
-		// TODO: Implement fetch_row() method.
+	private function delete_line($table, $where) {
+		$_where = [];
+		$last_key = null;
+		foreach ($where as $where_detail) {
+			if($where_detail['expr_type'] === 'colref') {
+				$last_key = $where_detail['no_quotes']['parts'][0];
+			}
+			elseif ($where_detail['expr_type'] === 'const') {
+				if(!is_null($last_key) && $where_detail['base_expr'] !== '' && $where_detail['base_expr'] !== '""') {
+					$_where[$last_key] = substr($where_detail['base_expr'], 0, 1) === '"' ? substr($where_detail['base_expr'], 1, strlen($where_detail['base_expr'])-2) : $where_detail['base_expr'];
+				}
+			}
+		}
+		$where = $_where;
+		if(is_file($this->connection.'/'.$table.'.json')) {
+			$table_content = json_decode(file_get_contents($this->connection.'/'.$table.'.json'), true);
+			$body = $table_content['body'];
+			foreach ($body as $id => $line) {
+				$valid = false;
+				foreach ($line as $field => $value) {
+					if(isset($where[$field]) && $where[$field] === $value) {
+						$valid = true;
+						break;
+					}
+				}
+				if($valid) unset($body[$id]);
+			}
+			$table_content['body'] = $body;
+			file_put_contents($this->connection.'/'.$table.'.json', json_encode($table_content));
+		}
 	}
 
-	public function fetch_array($result_type = MYSQLI_BOTH) {
-		// TODO: Implement fetch_array() method.
+	private function update_line($table, $set, $where) {
+		$_set = [];
+		foreach ($set as $line) {
+			$_set[$line['sub_tree'][0]['no_quotes']['parts'][0]] = substr($line['sub_tree'][2]['base_expr'], 0, 1) === '"' ? substr($line['sub_tree'][2]['base_expr'], 1, strlen($line['sub_tree'][2]['base_expr'])-2) : $line['sub_tree'][2]['base_expr'];
+		}
+//		var_dump($_set);
+		$primary_key = $where[0]['no_quotes']['parts'][0];
+		$primary_key_value = substr($where[2]['base_expr'], 0, 1) === '"' ? substr($where[2]['base_expr'], 1, strlen($where[2]['base_expr'])-2) : $where[2]['base_expr'];
+		$table_content = json_decode(file_get_contents($this->connection.'/'.$table.'.json'), true);
+		$body = $table_content['body'];
+		foreach ($body as $id => $line) {
+			if((string)$line[$primary_key] === (string)$primary_key_value) {
+				foreach ($_set as $field => $value) $body[$id][$field] = $value;
+				break;
+			}
+		}
+		$table_content['body'] = $body;
+		file_put_contents($this->connection.'/'.$table.'.json', json_encode($table_content));
+	}
+
+	private function insert_datas($table, $fields_list, $values) {
+		$class = '\mvc_framework\core\orm\dbcontext\\'.ucfirst($table).'Context';
+		$structure = array_keys($class::create($this, data_format::$JSON)->get_structure());
+		foreach ($structure as $id => $field) {
+			$structure[$field] = null;
+			unset($structure[$id]);
+		}
+		$fields = [];
+		foreach ($fields_list as $field_detail) {
+			if(in_array($field_detail['no_quotes']['parts'][0], array_keys($structure)))
+				$fields[$field_detail['no_quotes']['parts'][0]] = null;
+			else {
+				$fields = false;
+				break;
+			}
+		}
+		if($fields) {
+			foreach ($values as $id => $field_detail) {
+				$key = array_keys($fields)[$id];
+				$fields[$key] = substr($field_detail['base_expr'], 0, 1) === '"' ? substr($field_detail['base_expr'], 1, strlen($field_detail['base_expr'])-2) : $field_detail['base_expr'];
+			}
+
+			$table_content = json_decode(file_get_contents($this->connection.'/'.$table.'.json'), true);
+			$body = $table_content['body'];
+			$body[] = $fields;
+			$table_content['body'] = $body;
+			file_put_contents($this->connection.'/'.$table.'.json', json_encode($table_content));
+		}
+	}
+
+	public function fetch_row() {
+		return $this->fetch_array();
+	}
+
+	public function fetch_array() {
+		$body = $this->select_result;
+		$_body = [];
+		foreach ($body as $id => $line) {
+			$_body[$id] = [];
+			foreach ($line as $value) {
+				$_body[$id][] = $value;
+			}
+		}
+		return $_body;
 	}
 
 	public function fetch_assoc() {
-		// TODO: Implement fetch_assoc() method.
+		return $this->select_result;
 	}
 
 	public function fetch_object($class_name = \stdClass::class, $params = []) {
-		// TODO: Implement fetch_object() method.
+		if(class_exists($class_name)) {
+			$objs = [];
+			foreach ($this->fetch_assoc() as $line) {
+				/**
+				 * @var dbcontext $data_obj
+				 */
+				$data_obj = $class_name::create($this);
+				foreach ($line as $field => $value) {
+					$data_obj->set($field, $value);
+				}
+				$objs[] = $data_obj;
+			}
+			return $objs;
+		}
+		return null;
 	}
 
 	/**

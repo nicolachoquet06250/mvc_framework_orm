@@ -30,61 +30,77 @@ trait data_format {
 	}
 
 	public function create_table($if_not_exists = false) {
-		$this->if_format_exisis(function ($if_not_exists) {
-			$this->format->create_table($if_not_exists);
+		return $this->if_format_exists(function ($if_not_exists) {
+			return $this->format->create_table($if_not_exists);
 		}, $if_not_exists);
 	}
 
 	public function insert() {
-		$this->if_format_exisis(function () {
+		$this->if_format_exists(function () {
 			$this->format->insert();
 		});
+		return $this;
 	}
+
 
 	public function update() {
-		$this->if_format_exisis(function () {
+		$this->if_format_exists(function () {
 			$this->format->update();
 		});
+		return $this;
 	}
+
 
 	public function delete() {
-		$this->if_format_exisis(function () {
+		$this->if_format_exists(function () {
 			$this->format->delete();
 		});
+		return $this;
 	}
 
+
+	public function drop() {
+		$this->if_format_exists(function () {
+			$this->format->drop();
+		});
+		return $this;
+	}
+
+
 	public function save() {
-		$this->if_format_exisis(function () {
+		$this->if_format_exists(function () {
 			$this->format->save();
 		});
+		return $this;
 	}
 
 	protected function refresh_structure($structure) {
-		$this->if_format_exisis(function ($structure) {
+		$this->if_format_exists(function ($structure) {
 			$this->format->refresh_structure($structure);
 		}, $structure);
 	}
 
 	protected function set_table($table) {
-		$this->if_format_exisis(function ($table) {
+		$this->if_format_exists(function ($table) {
 			$this->format->set_table($table);
 		}, $table);
 	}
 
 	protected function set_connection($connection) {
-		$this->if_format_exisis(function ($connection) {
+		$this->if_format_exists(function ($connection) {
 			$this->format->set_connection($connection);
 		}, $connection);
 	}
 
-	private function if_format_exisis(callable $callback, $parameter = null) {
+	private function if_format_exists(callable $callback, $parameter = null) {
 		if(!is_null($this->format)) {
 			$this->format->refresh_structure($this->get_structure());
 			if (is_null($parameter)) {
-				$callback();
+				return $callback();
 			} else {
-				$callback($parameter);
+				return $callback($parameter);
 			}
 		}
+		return null;
 	}
 }

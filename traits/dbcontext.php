@@ -8,9 +8,13 @@ trait dbcontext {
 	protected $auto_save = false;
 	protected $connection;
 
-	public function __construct($connection, $format = null) {
-		if(is_null($format)) $format = data_format::$MYSQLI;
-		$this->select_format($format);
+	/**
+	 * dbcontext constructor.
+	 *
+	 * @param SQL $connection
+	 */
+	public function __construct($connection) {
+		$this->select_format($connection->get_format());
 		$this->set_connection($connection);
 	}
 	public function get_structure() {
@@ -41,5 +45,36 @@ trait dbcontext {
 	}
 	public function update_auto_save() {
 		$this->auto_save = !$this->auto_save;
+	}
+
+	/**
+	 * @param SQL $connection
+	 * @return dbcontext
+	 */
+	public static function create($connection) {
+		$class = __CLASS__;
+		return new $class($connection);
+	}
+
+	public function get_table_name() {
+		$class_name = __CLASS__;
+		$class_name = explode('\\', $class_name);
+		$class_name = $class_name[count($class_name)-1];
+		$table_name = str_replace('Context', '', $class_name);
+		return strtolower($table_name);
+	}
+
+	public function get_class() {
+		return __CLASS__;
+	}
+
+	public function to_array() {
+		$array = [];
+		foreach (get_object_vars($this) as $prop_name => $prop_value) {
+			if(is_array($prop_value)) {
+				$array[$prop_name] = $prop_value['value'];
+			}
+		}
+		return $array;
 	}
 }

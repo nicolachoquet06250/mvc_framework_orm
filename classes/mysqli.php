@@ -66,7 +66,7 @@ class mysqli {
 				/**
 				 * @var dbcontext $data_obj
 				 */
-				$data_obj = new $class_name($this, data_format::$JSON);
+				$data_obj = $class_name::create($this);
 				foreach ($data as $key => $value) {
 					$data_obj->set($key, $value);
 				}

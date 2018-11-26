@@ -1,38 +1,86 @@
 <?php
 
-use \mvc_framework\core\orm\mysqli;
-use \mvc_framework\core\orm\json;
-
 require_once __DIR__.'/autoload.php';
 
 try {
 	$data_type = 'json';
 
-	if($data_type === 'mysqli') {
-		$cnx = new mysqli(\mvc_framework\core\orm\connection_templates\mysqli::get(
+	$supported_formats = [
+		'json',
+		'mysqli',
+	];
+	$supported_classes = [
+		'json' => '\mvc_framework\core\orm\json',
+		'mysqli' => '\mvc_framework\core\orm\mysqli',
+	];
+	$supported_connection_template = [
+		'json' => \mvc_framework\core\orm\connection_templates\json::get(
+			__DIR__.'/datas',
+			'localhost',
+			'nicolas-choquet_budgets'
+		),
+		'mysqli' => \mvc_framework\core\orm\connection_templates\mysqli::get(
 			'mysql-nicolas-choquet.alwaysdata.net',
 			143175,
 			'2669NICOLAS2107',
 			'nicolas-choquet_budgets'
-		));
-		$cnx->query('SELECT * FROM `?table`', [
-			'table' => 'account',
-		]);
-		/** @var \mvc_framework\core\orm\dbcontext\AccountContext[] $accounts */
-		$accounts = $cnx->fetch_object(\mvc_framework\core\orm\dbcontext\AccountContext::class);
-		$accounts[0]->create_table(true);
+		),
+	];
+
+	/**
+	 * @var \mvc_framework\core\orm\traits\SQL $cnx
+	 */
+	$cnx = new $supported_classes[$data_type]($supported_connection_template[$data_type]);
+	$table = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx);
+	$table->create_table(true);
+	$cnx->query('SELECT * FROM `?table`', [
+		'table' => $table->get_table_name(),
+	]);
+	/** @var \mvc_framework\core\orm\dbcontext\AccountContext[] $accounts */
+	$accounts = $cnx->fetch_object($table->get_class());
+	if(empty($accounts)) {
+		$accounts[] = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx)
+																	  ->set('id_account', 0)
+																	  ->set('email', 'toto@toto.com')
+																	  ->set('password', 'tetedecul')
+																	  ->set('nom', 'Loubet')
+																	  ->set('prenom', 'André')
+																	  ->set('pseudo', 'HelloWorld')
+																	  ->set('IP', '')
+																	  ->insert();
+		$accounts[] = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx)
+																	  ->set('id_account', 1)
+																	  ->set('email', 'toto1@toto.com')
+																	  ->set('password', 'yahoooooo')
+																	  ->set('nom', 'Loubet')
+																	  ->set('prenom', 'Karine')
+																	  ->set('pseudo', 'HelloWorld1')
+																	  ->set('IP', '')
+																	  ->insert();
+		$accounts[] = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx)
+																	  ->set('id_account', 2)
+																	  ->set('email', 'toto2@toto.com')
+																	  ->set('password', 'HarryPotter')
+																	  ->set('nom', 'Choquet')
+																	  ->set('prenom', 'Nicolas')
+																	  ->set('pseudo', 'HelloWorld2')
+																	  ->set('IP', '')
+																	  ->insert();
+		$accounts[] = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx)
+																	  ->set('id_account', 3)
+																	  ->set('email', 'toto3@toto.com')
+																	  ->set('password', 'Keen_v')
+																	  ->set('nom', 'Choquet')
+																	  ->set('prenom', 'Yann')
+																	  ->set('pseudo', 'HelloWorld3')
+																	  ->set('IP', '')
+																	  ->insert();
 	}
-	elseif ($data_type === 'json') {
-		$cnx = new json(\mvc_framework\core\orm\connection_templates\json::get(
-			__DIR__.'/datas',
-			'localhost',
-			'nicolas-choquet_budgets'
-		));
-//		(new \mvc_framework\core\orm\dbcontext\AccountContext($cnx, \mvc_framework\core\orm\traits\data_format::$JSON))->create_table(true);
-		$cnx->query('SELECT id_account id, email FROM `?table`', [
-			'table' => 'account',
-		]);
+	foreach ($accounts as $account) {
+		var_dump($account->get('email'));
+		var_dump($account->to_array());
 	}
+	$accounts[1]->set('pseudo', 'nouveau_pseudo2')->update();
 }
 catch (Exception $e) {
 	echo $e->getMessage()."\n";
