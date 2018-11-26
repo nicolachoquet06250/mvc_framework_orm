@@ -37,7 +37,7 @@ try {
 	$table = AccountContext::create($cnx);
 	$table->create_table(true);
 
-	$cnx->query('SELECT * FROM `?table`', [
+	$cnx->query('SELECT * FROM `?table` WHERE `id_account`=1', [
 		'table' => $table->get_table_name(),
 	]);
 

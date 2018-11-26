@@ -158,6 +158,28 @@ class json {
 			}
 			$body = $_body;
 		}
+		if(isset($complete_request['WHERE'])) {
+			$where    = [];
+			$last_key = null;
+			foreach ($complete_request['WHERE'] as $id => $where_details) {
+				if ($where_details['expr_type'] === 'colref')
+					$last_key = $where_details['no_quotes']['parts'][0];
+				elseif ($where_details['expr_type'] === 'const')
+					$where[$last_key] = $where_details['base_expr'];
+			}
+			$_body = [];
+			foreach ($body as $line) {
+				$valid = true;
+				foreach ($where as $field => $value) {
+					if($line[$field] !== $value) {
+						$valid = false;
+						break;
+					}
+				}
+				if($valid) $_body[] = $line;
+			}
+			$body = $_body;
+		}
 		$this->select_result = $body;
 	}
 
