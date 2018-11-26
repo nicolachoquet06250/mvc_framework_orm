@@ -2,24 +2,29 @@
 
 require_once __DIR__.'/autoload.php';
 
+use \mvc_framework\core\orm\traits\data_format;
+use \mvc_framework\core\orm\connection_templates\json;
+use \mvc_framework\core\orm\connection_templates\mysqli;
+use \mvc_framework\core\orm\dbcontext\AccountContext;
+
 try {
-	$data_type = 'json';
+	$data_type = data_format::$JSON;
 
 	$supported_formats = [
-		'json',
-		'mysqli',
+		data_format::$JSON,
+		data_format::$MYSQLI,
 	];
 	$supported_classes = [
-		'json' => '\mvc_framework\core\orm\json',
-		'mysqli' => '\mvc_framework\core\orm\mysqli',
+		data_format::$JSON => '\mvc_framework\core\orm\json',
+		data_format::$MYSQLI => '\mvc_framework\core\orm\mysqli',
 	];
 	$supported_connection_template = [
-		'json' => \mvc_framework\core\orm\connection_templates\json::get(
+		data_format::$JSON => json::get(
 			__DIR__.'/datas',
 			'localhost',
 			'nicolas-choquet_budgets'
 		),
-		'mysqli' => \mvc_framework\core\orm\connection_templates\mysqli::get(
+		data_format::$MYSQLI => mysqli::get(
 			'mysql-nicolas-choquet.alwaysdata.net',
 			143175,
 			'2669NICOLAS2107',
@@ -27,17 +32,18 @@ try {
 		),
 	];
 
-	/**
-	 * @var \mvc_framework\core\orm\traits\SQL $cnx
-	 */
+	/** @var \mvc_framework\core\orm\traits\SQL $cnx */
 	$cnx = new $supported_classes[$data_type]($supported_connection_template[$data_type]);
-	$table = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx);
+	$table = AccountContext::create($cnx);
 	$table->create_table(true);
+
 	$cnx->query('SELECT * FROM `?table`', [
 		'table' => $table->get_table_name(),
 	]);
+
 	/** @var \mvc_framework\core\orm\dbcontext\AccountContext[] $accounts */
 	$accounts = $cnx->fetch_object($table->get_class());
+
 	if(empty($accounts)) {
 		$accounts[] = \mvc_framework\core\orm\dbcontext\AccountContext::create($cnx)
 																	  ->set('id_account', 0)
@@ -76,11 +82,13 @@ try {
 																	  ->set('IP', '')
 																	  ->insert();
 	}
-	foreach ($accounts as $account) {
+
+	foreach ($accounts as $id => $account) {
 		var_dump($account->get('email'));
 		var_dump($account->to_array());
+		if($id === 1)
+			$account->set('pseudo', 'nouveau_pseudo2')->update();
 	}
-	$accounts[1]->set('pseudo', 'nouveau_pseudo2')->update();
 }
 catch (Exception $e) {
 	echo $e->getMessage()."\n";
