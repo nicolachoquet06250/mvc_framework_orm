@@ -32,11 +32,7 @@ class mysqli {
 
 	public function query($request = '', $params = []) {
 		if ($request !== '') {
-			if(!empty($params)) {
-				foreach ($params as $key => $param) {
-					$request = str_replace('?'.$key, $param, $request);
-				}
-			}
+			$request = $this->get_prepared_request($request, $params);
 			$this->query           = $request;
 			$this->current_request = $this->connection->query($request);
 		}

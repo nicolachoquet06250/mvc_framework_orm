@@ -34,15 +34,9 @@ class json {
 
 	public function query($request, $params = []) {
 		if ($request !== '') {
-			if(!empty($params)) {
-				foreach ($params as $key => $param) {
-					$request = str_replace('?'.$key, $param, $request);
-				}
-			}
+			$request = $this->get_prepared_request($request, $params);
 			$parser = new PHPSQLParser($request);
 			$parsed_keys = array_keys($parser->parsed);
-
-			$this->write_parsed_in_text($parser->parsed);
 
 			if(in_array('CREATE', $parsed_keys) && in_array('TABLE', $parsed_keys)) {
 				$if_not_exists = strstr($parser->parsed['CREATE']['base_expr'], 'IF NOT EXISTS') ? true : false;

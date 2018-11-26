@@ -48,6 +48,15 @@ trait SQL {
 		return $format;
 	}
 
+	protected function get_prepared_request($request, $params) {
+		if(!empty($params)) {
+			foreach ($params as $key => $param) {
+				$request = str_replace('?'.$key, $param, $request);
+			}
+		}
+		return $request;
+	}
+
 	/**
 	 * @param $key
 	 * @return mixed
