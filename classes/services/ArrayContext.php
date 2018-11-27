@@ -87,11 +87,17 @@ class ArrayContext {
 		return empty($this->array);
 	}
 
-	public function filter(callable $callback) {
+	/**
+	 * @param callable|string $callback
+	 */
+	public function filter($callback) {
 		$this->create_rollback();
 		$this->array = array_filter($this->array, $callback);
 	}
 
+	/**
+	 * @param callable|string $callback
+	 */
 	public function map(callable $callback) {
 		$this->create_rollback();
 		$this->array = array_map($callback, $this->array);
