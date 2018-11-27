@@ -123,6 +123,14 @@ class json {
 	}
 
 	private function select_table($table, $complete_request) {
+		$primary_key = null;
+		$class = '\mvc_framework\core\orm\dbcontext\\'.ucfirst($table).'Context';
+		foreach ($class::create($this)->get_structure() as $field => $detail) {
+			if(isset($detail['key']) && $detail['key'] === 'primary') {
+				$primary_key = $field;
+				break;
+			}
+		}
 		$fields_to_select = [];
 		foreach ($complete_request['SELECT'] as $field_to_select) {
 			if($field_to_select['base_expr'] === '*') {
@@ -177,7 +185,15 @@ class json {
 						break;
 					}
 				}
-				if($valid) $_body[] = $line;
+				$already_exists = false;
+				foreach ($_body as $_line) {
+					if((string)$_line[$primary_key] === (string)$line[$primary_key]) {
+						$already_exists = true;
+						break;
+					}
+				}
+
+				if($valid && !$already_exists) $_body[] = $line;
 			}
 			$body = $_body;
 		}
@@ -277,18 +293,24 @@ class json {
 
 	public function fetch_array() {
 		$body = $this->select_result;
-		$_body = [];
+		$_body = ArrayContext::create('mixed');
 		foreach ($body as $id => $line) {
-			$_body[$id] = [];
-			foreach ($line as $value) {
-				$_body[$id][] = $value;
-			}
+			$tmp = ArrayContext::create('mixed');
+			foreach ($line as $value) $tmp->push($value);
+			$_body->push($tmp, $id);
 		}
 		return $_body;
 	}
 
 	public function fetch_assoc() {
-		return $this->select_result;
+		$body = $this->select_result;
+		$_body = ArrayContext::create('mixed');
+		foreach ($body as $id => $line) {
+			$tmp = ArrayContext::create('mixed');
+			foreach ($line as $_id => $value) $tmp->push($value, $_id);
+			$_body->push($tmp, $id);
+		}
+		return $_body;
 	}
 
 	/**

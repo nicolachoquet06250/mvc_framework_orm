@@ -24,17 +24,20 @@ class ArrayContext {
 
 	public function push($mixed, $key = null) {
 		if(gettype($mixed) === $this->arrayOf) {
-			if ($this->arrayOf === 'object') {
-				if (get_class($mixed) === $this->classOfArray) {
-					if (!is_null($key)) $this->array[$key] = $mixed;
-					else array_push($this->array, $mixed);
-				}
+			if ($this->arrayOf === 'object' && get_class($mixed) === $this->classOfArray) {
+				if (!is_null($key)) $this->array[$key] = $mixed;
+				else array_push($this->array, $mixed);
 			}
 			else {
 				if(!is_null($key)) $this->array[$key] = $mixed;
 				else array_push($this->array, $mixed);
 			}
 		}
+		elseif($this->arrayOf === 'mixed') {
+			if(!is_null($key)) $this->array[$key] = $mixed;
+			else array_push($this->array, $mixed);
+		}
+		return $this;
 	}
 
 	public function get($key = null) {

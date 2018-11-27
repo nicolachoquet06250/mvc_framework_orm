@@ -3,6 +3,8 @@
 namespace mvc_framework\core\orm\traits;
 
 
+use mvc_framework\core\orm\services\ArrayContext;
+
 trait dbcontext {
 	use data_format;
 	protected $auto_save = false;
@@ -69,10 +71,10 @@ trait dbcontext {
 	}
 
 	public function to_array() {
-		$array = [];
+		$array = ArrayContext::create('mixed');
 		foreach (get_object_vars($this) as $prop_name => $prop_value) {
 			if(is_array($prop_value)) {
-				$array[$prop_name] = $prop_value['value'];
+				$array->push($prop_value['value'], $prop_name)/*[$prop_name] = $prop_value['value']*/;
 			}
 		}
 		return $array;
