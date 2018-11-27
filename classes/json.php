@@ -287,11 +287,11 @@ class json {
 		}
 	}
 
-	public function fetch_row() {
-		return $this->fetch_array();
+	public function fetch_row($key) {
+		return $this->fetch_array()->get($key);
 	}
 
-	public function fetch_array() {
+	public function fetch_array(): ArrayContext {
 		$body = $this->select_result;
 		$_body = ArrayContext::create('mixed');
 		foreach ($body as $id => $line) {
@@ -302,7 +302,7 @@ class json {
 		return $_body;
 	}
 
-	public function fetch_assoc() {
+	public function fetch_assoc(): ArrayContext {
 		$body = $this->select_result;
 		$_body = ArrayContext::create('mixed');
 		foreach ($body as $id => $line) {
@@ -318,7 +318,7 @@ class json {
 	 * @param array $params
 	 * @return ArrayContext|null
 	 */
-	public function fetch_object($class_name = \stdClass::class, $params = []) {
+	public function fetch_object($class_name = \stdClass::class, $params = []): ArrayContext {
 		if(class_exists($class_name)) {
 			$objs = ArrayContext::create('object', $class_name);
 			foreach ($this->fetch_assoc() as $line) {

@@ -42,14 +42,14 @@ class ArrayContext {
 
 	public function get($key = null) {
 		if(is_null($key)) return $this->array;
-		return $this->array[$key];
+		return isset($this->array[$key]) ? $this->array[$key] : null;
 	}
 
 	/**
 	 * @param callable|string $callback
 	 * @throws \ReflectionException
 	 */
-	public function foreach($callback) {
+	public function foreach($callback, ...$params) {
 		foreach ($this->array as $key => $value) {
 			$params_array = [
 				'key' => $key,
@@ -65,7 +65,8 @@ class ArrayContext {
 					$this->execute_callback(
 						count((new ReflectionFunction($callback))->getParameters()),
 						$callback,
-						$params_array
+						$params_array,
+						$params
 					);
 				elseif ($is_method)
 					$this->execute_callback(
@@ -74,14 +75,16 @@ class ArrayContext {
 							explode('::', $callback)[1]
 						))->getParameters()),
 						$callback,
-						$params_array
+						$params_array,
+						$params
 					);
 			}
 			else
 				$this->execute_callback(
 					count((new ReflectionFunction($callback))->getParameters()),
 					$callback,
-					$params_array
+					$params_array,
+					$params
 				);
 		}
 	}
@@ -110,12 +113,29 @@ class ArrayContext {
 		$this->array = $this->array_rollback;
 	}
 
+	public function init(...$array) {
+		if(count($array) === 1 && gettype($array[0]) === 'array')
+			foreach ($array[0] as $key => $value)
+				$this->push($value, $key);
+		else {
+			$last_key = null;
+			foreach ($array as $i => $item) {
+				if ($i % 2 === 0)
+					$last_key = $item;
+				else
+					$this->push($item, $last_key);
+			}
+		}
+		return $this;
+	}
+
 	private function create_rollback() {
 		$this->array_rollback = $this->array;
 	}
 
-	private function execute_callback($nb_params, $callback, $params) {
+	private function execute_callback($nb_params, $callback, $params, $other_params) {
 		if($nb_params === 1) $callback($params['value']);
 		elseif ($nb_params === 2) $callback($params['key'], $params['value']);
+		elseif ($nb_params === 3) $callback($params['key'], $params['value'], $other_params);
 	}
 }

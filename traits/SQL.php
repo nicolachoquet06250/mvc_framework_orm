@@ -3,6 +3,8 @@
 namespace mvc_framework\core\orm\traits;
 
 
+use mvc_framework\core\orm\services\ArrayContext;
+
 trait SQL {
 	protected $is_connected = false;
 	protected $host = '', $username = '', $password = '', $db = '';
@@ -48,10 +50,24 @@ trait SQL {
 		return $format;
 	}
 
+	/**
+	 * @param $request
+	 * @param array|ArrayContext $params
+	 * @return mixed
+	 */
 	protected function get_prepared_request($request, $params) {
-		if(!empty($params)) {
-			foreach ($params as $key => $param) {
-				$request = str_replace('?'.$key, $param, $request);
+		if(gettype($params) === 'array') {
+			if (!empty($params)) {
+				foreach ($params as $key => $param) {
+					$request = str_replace('?'.$key, $param, $request);
+				}
+			}
+		}
+		elseif (gettype($params) === 'object' && get_class($params) === ArrayContext::class) {
+			if(!$params->is_empty()) {
+				foreach ($params->get() as $key => $param) {
+					$request = str_replace('?'.$key, $param, $request);
+				}
 			}
 		}
 		return $request;
