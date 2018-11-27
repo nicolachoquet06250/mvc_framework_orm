@@ -3,6 +3,7 @@
 namespace mvc_framework\core\orm;
 
 
+use mvc_framework\core\orm\services\ArrayContext;
 use mvc_framework\core\orm\traits\data_format;
 use mvc_framework\core\orm\traits\dbcontext;
 use mvc_framework\core\orm\traits\SQL;
@@ -53,20 +54,20 @@ class mysqli {
 	/**
 	 * @param string $class_name
 	 * @param array $params
-	 * @return \mvc_framework\core\orm\traits\dbcontext[]|null
+	 * @return ArrayContext|null
 	 */
 	public function fetch_object($class_name = \stdClass::class, $params = []) {
 		if(class_exists($class_name)) {
-			$objs = [];
-			while ($data = $this->fetch_assoc()) {
+			$objs = ArrayContext::create('object', $class_name);
+			foreach ($this->fetch_assoc() as $line) {
 				/**
 				 * @var dbcontext $data_obj
 				 */
 				$data_obj = $class_name::create($this);
-				foreach ($data as $key => $value) {
-					$data_obj->set($key, $value);
+				foreach ($line as $field => $value) {
+					$data_obj->set($field, $value);
 				}
-				$objs[] = $data_obj;
+				$objs->push($data_obj);
 			}
 			return $objs;
 		}

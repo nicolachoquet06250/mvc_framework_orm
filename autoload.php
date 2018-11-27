@@ -11,3 +11,4 @@ require_once __DIR__.'/classes/templates/mysqli.php';
 require_once __DIR__.'/classes/json.php';
 require_once __DIR__.'/classes/mysqli.php';
 require_once __DIR__.'/classes/SQLFactory.php';
+require_once __DIR__.'/classes/services/ArrayContext.php';

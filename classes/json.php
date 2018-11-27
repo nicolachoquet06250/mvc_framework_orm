@@ -3,6 +3,7 @@
 namespace mvc_framework\core\orm;
 
 
+use mvc_framework\core\orm\services\ArrayContext;
 use mvc_framework\core\orm\traits\data_format;
 use mvc_framework\core\orm\traits\dbcontext;
 use mvc_framework\core\orm\traits\SQL;
@@ -290,9 +291,14 @@ class json {
 		return $this->select_result;
 	}
 
+	/**
+	 * @param string $class_name
+	 * @param array $params
+	 * @return ArrayContext|null
+	 */
 	public function fetch_object($class_name = \stdClass::class, $params = []) {
 		if(class_exists($class_name)) {
-			$objs = [];
+			$objs = ArrayContext::create('object', $class_name);
 			foreach ($this->fetch_assoc() as $line) {
 				/**
 				 * @var dbcontext $data_obj
@@ -301,7 +307,7 @@ class json {
 				foreach ($line as $field => $value) {
 					$data_obj->set($field, $value);
 				}
-				$objs[] = $data_obj;
+				$objs->push($data_obj);
 			}
 			return $objs;
 		}
