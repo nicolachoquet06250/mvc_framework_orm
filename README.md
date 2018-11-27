@@ -163,7 +163,8 @@ try {
 				->set('pseudo', 'HelloWorld3')
 				->set('IP', '')
 				->insert()
-		);	}
+		);
+	}
 
 	$accounts_object->foreach(IndexCallbacks::class.'::FetchObjectCallback');
 	$accounts_assoc->foreach(IndexCallbacks::class.'::FetchCallback');
