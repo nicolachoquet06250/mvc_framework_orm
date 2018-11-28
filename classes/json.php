@@ -36,41 +36,42 @@ class json {
 	public function query($request, $params = []) {
 		if ($request !== '') {
 			$request = $this->get_prepared_request($request, $params);
-			$parser = new PHPSQLParser($request);
-			$parsed_keys = array_keys($parser->parsed);
+			$parsed = $this->parse_request($request);
+			$parsed_keys = array_keys($parsed);
 
 			if(in_array('CREATE', $parsed_keys) && in_array('TABLE', $parsed_keys)) {
-				$if_not_exists = strstr($parser->parsed['CREATE']['base_expr'], 'IF NOT EXISTS') ? true : false;
-				$table = $parser->parsed['TABLE']['no_quotes']['parts'][0];
-				$structure = $parser->parsed['TABLE']['create-def']['sub_tree'];
+				$if_not_exists = strstr($parsed['CREATE']['base_expr'], 'IF NOT EXISTS') ? true : false;
+				$table = $parsed['TABLE']['no_quotes']['parts'][0];
+				$structure = $parsed['TABLE']['create-def']['sub_tree'];
 				$this->create_table($if_not_exists, $table, $structure);
 			}
 			elseif (in_array('DROP', $parsed_keys)) {
-				$table = $parser->parsed['DROP']['sub_tree'][1]['sub_tree'][0]['no_quotes']['parts'][0];
+				$table = $parsed['DROP']['sub_tree'][1]['sub_tree'][0]['no_quotes']['parts'][0];
 				$this->drop_table($table);
 			}
 			elseif (in_array('INSERT', $parsed_keys)) {
-				$table = $parser->parsed['INSERT'][1]['no_quotes']['parts'][0];
-				$fields_list = $parser->parsed['INSERT'][2]['sub_tree'];
-				$values = $parser->parsed['VALUES'][0]['data'];
+				$table = $parsed['INSERT'][1]['no_quotes']['parts'][0];
+				$fields_list = $parsed['INSERT'][2]['sub_tree'];
+				$values = $parsed['VALUES'][0]['data'];
 				$this->insert_datas($table, $fields_list, $values);
 			}
 			elseif (in_array('DELETE', $parsed_keys) && in_array('FROM', $parsed_keys)) {
-				$table = $parser->parsed['FROM'][0]['no_quotes']['parts'][0];
-				$where = $parser->parsed['WHERE'];
+				$table = $parsed['FROM'][0]['no_quotes']['parts'][0];
+				$where = $parsed['WHERE'];
 				$this->delete_line($table, $where);
 			}
 			elseif (in_array('UPDATE', $parsed_keys)) {
-				$table = $parser->parsed['UPDATE'][0]['no_quotes']['parts'][0];
-				$set = $parser->parsed['SET'];
-				$where = $parser->parsed['WHERE'];
+				$table = $parsed['UPDATE'][0]['no_quotes']['parts'][0];
+				$set = $parsed['SET'];
+				$where = $parsed['WHERE'];
 				$this->update_line($table, $set, $where);
 			}
 			elseif (in_array('SELECT', $parsed_keys)) {
-				$table = $parser->parsed['FROM'][0]['no_quotes']['parts'][0];
-				$this->select_table($table, $parser->parsed);
+				$table = $parsed['FROM'][0]['no_quotes']['parts'][0];
+				$this->select_table($table, $parsed);
 			}
 		}
+		return $this;
 	}
 
 	private function write_parsed_in_text($parsed) {
@@ -79,6 +80,11 @@ class json {
 		$var_dump = ob_get_contents();
 		ob_clean();
 		file_put_contents(__DIR__.'/../test.txt', $var_dump);
+	}
+
+	private function parse_request($request) {
+		$parser = new PHPSQLParser($request);
+		return $parser->parsed;
 	}
 
 	private function create_table($if_not_exists, $table, $structure) {
@@ -174,10 +180,13 @@ class json {
 				if ($where_details['expr_type'] === 'colref')
 					$last_key = $where_details['no_quotes']['parts'][0];
 				elseif ($where_details['expr_type'] === 'const')
-					$where[$last_key] = $where_details['base_expr'];
+					$where[$last_key] = substr($where_details['base_expr'], 0, 1) === '"' ? ArrayContext::clean_value(substr($where_details['base_expr'], 1, count($where_details['base_expr'])-2)) : $where_details['base_expr'];
 			}
 			$_body = [];
 			foreach ($body as $line) {
+				foreach ($line as $i => $val) {
+					$line[$i] = ArrayContext::clean_value($val);
+				}
 				$valid = true;
 				foreach ($where as $field => $value) {
 					if($line[$field] !== $value) {
@@ -193,8 +202,12 @@ class json {
 					}
 				}
 
-				if($valid && !$already_exists) $_body[] = $line;
+				if($valid && !$already_exists) {
+					var_dump($line, $valid, $already_exists);
+					$_body[] = $line;
+				}
 			}
+			var_dump($_body);
 			$body = $_body;
 		}
 		$this->select_result = $body;
@@ -242,7 +255,6 @@ class json {
 		foreach ($set as $line) {
 			$_set[$line['sub_tree'][0]['no_quotes']['parts'][0]] = substr($line['sub_tree'][2]['base_expr'], 0, 1) === '"' ? substr($line['sub_tree'][2]['base_expr'], 1, strlen($line['sub_tree'][2]['base_expr'])-2) : $line['sub_tree'][2]['base_expr'];
 		}
-//		var_dump($_set);
 		$primary_key = $where[0]['no_quotes']['parts'][0];
 		$primary_key_value = substr($where[2]['base_expr'], 0, 1) === '"' ? substr($where[2]['base_expr'], 1, strlen($where[2]['base_expr'])-2) : $where[2]['base_expr'];
 		$table_content = json_decode(file_get_contents($this->connection.'/'.$table.'.json'), true);
@@ -292,23 +304,29 @@ class json {
 	}
 
 	public function fetch_array(): ArrayContext {
-		$body = $this->select_result;
-		$_body = ArrayContext::create('mixed');
-		foreach ($body as $id => $line) {
-			$tmp = ArrayContext::create('mixed');
-			foreach ($line as $value) $tmp->push($value);
-			$_body->push($tmp, $id);
+		$_body = ArrayContext::create('object', ArrayContext::class);
+		if(!empty($this->select_result)) {
+			$body  = $this->select_result;
+			foreach ($body as $id => $line) {
+				$tmp = ArrayContext::create();
+				foreach ($line as $value)
+					$tmp->push($value);
+				$_body->push($tmp, $id);
+			}
 		}
 		return $_body;
 	}
 
 	public function fetch_assoc(): ArrayContext {
-		$body = $this->select_result;
-		$_body = ArrayContext::create('mixed');
-		foreach ($body as $id => $line) {
-			$tmp = ArrayContext::create('mixed');
-			foreach ($line as $_id => $value) $tmp->push($value, $_id);
-			$_body->push($tmp, $id);
+		$_body = ArrayContext::create('object', ArrayContext::class);
+		if(!empty($this->select_result)) {
+			$body = $this->select_result;
+			foreach ($body as $id => $line) {
+				$tmp = ArrayContext::create();
+				foreach ($line as $_id => $value)
+					$tmp->push($value, $_id);
+				$_body->push($tmp, $id);
+			}
 		}
 		return $_body;
 	}
@@ -321,12 +339,11 @@ class json {
 	public function fetch_object($class_name = \stdClass::class, $params = []): ArrayContext {
 		if(class_exists($class_name)) {
 			$objs = ArrayContext::create('object', $class_name);
-			foreach ($this->fetch_assoc() as $line) {
-				/**
-				 * @var dbcontext $data_obj
-				 */
+			foreach ($this->fetch_assoc()->get() as $line) {
+				/** @var ArrayContext $line */
+				/** @var dbcontext $data_obj */
 				$data_obj = $class_name::create($this);
-				foreach ($line as $field => $value) {
+				foreach ($line->get() as $field => $value) {
 					$data_obj->set($field, $value);
 				}
 				$objs->push($data_obj);

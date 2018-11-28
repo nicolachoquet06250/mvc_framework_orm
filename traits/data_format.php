@@ -12,6 +12,7 @@ trait data_format {
 	 */
 	protected $format = null;
 	protected $table;
+
 	protected function select_format($format) {
 		$structure = $this->get_structure();
 		if(file_exists(__DIR__.'/../classes/formats/'.$format.'.php')) {
@@ -42,14 +43,12 @@ trait data_format {
 		return $this;
 	}
 
-
 	public function update() {
 		$this->if_format_exists(function () {
 			$this->format->update();
 		});
 		return $this;
 	}
-
 
 	public function delete() {
 		$this->if_format_exists(function () {
@@ -58,7 +57,6 @@ trait data_format {
 		return $this;
 	}
 
-
 	public function drop() {
 		$this->if_format_exists(function () {
 			$this->format->drop();
@@ -66,12 +64,17 @@ trait data_format {
 		return $this;
 	}
 
-
 	public function save() {
 		$this->if_format_exists(function () {
 			$this->format->save();
 		});
 		return $this;
+	}
+
+	public function get_where($prop, $value) {
+		return $this->if_format_exists(function ($params) {
+			return $this->format->get_where($params['prop'], $params['value'], $this->get_class());
+		}, ['prop' => $prop, 'value' => $value]);
 	}
 
 	protected function refresh_structure($structure) {

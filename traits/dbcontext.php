@@ -9,6 +9,7 @@ trait dbcontext {
 	use data_format;
 	protected $auto_save = false;
 	protected $connection;
+	private $structure = null;
 
 	/**
 	 * dbcontext constructor.
@@ -18,28 +19,29 @@ trait dbcontext {
 	public function __construct($connection) {
 		$this->select_format($connection->get_format());
 		$this->set_connection($connection);
-	}
-	public function get_structure() {
-		$vars = [];
+		$this->structure = [];
 		foreach (get_object_vars($this) as $var => $value) {
-			if(is_array($value)) $vars[$var] = $value;
+			if(is_array($value) && $var !== 'structure') $this->structure[$var] = $value;
 		}
-		return $vars;
 	}
+
+	public function get_structure() {
+		return $this->structure;
+	}
+
 	public function get($key, $what = 'value') {
-		if(isset($this->$key)) {
-			return $this->$key[$what];
-		}
+		if($what === 'value') return $this->clean_value($key);
+		if(isset($this->structure[$key])) return $this->structure[$key][$what];
 		return null;
 	}
 	public function set($key, $value, $what = 'value') {
-		if(isset($this->$key)) {
-			if($this->$key['type']['name'] === 'integer'
-			   || $this->$key['type']['name'] === 'int'
-			   ||  $this->$key['type']['name'] === 'numeric') {
+		if(isset($this->structure[$key])) {
+			if($this->structure[$key]['type']['name'] === 'integer'
+			   || $this->structure[$key]['type']['name'] === 'int'
+			   ||  $this->structure[$key]['type']['name'] === 'numeric') {
 				$value = intval($value);
 			}
-			$this->$key[$what] = $value;
+			$this->structure[$key][$what] = $value;
 			if($this->auto_save) $this->save();
 			return $this;
 		}
@@ -70,13 +72,25 @@ trait dbcontext {
 		return __CLASS__;
 	}
 
-	public function to_array() {
-		$array = ArrayContext::create('mixed');
-		foreach (get_object_vars($this) as $prop_name => $prop_value) {
+	public function to_array($assoc = true) {
+		$array = ArrayContext::create();
+		foreach ($this->get_structure() as $prop_name => $prop_value) {
 			if(is_array($prop_value)) {
-				$array->push($prop_value['value'], $prop_name)/*[$prop_name] = $prop_value['value']*/;
+				if($assoc)
+					$array->push($this->get($prop_name), $prop_name);
+				else
+					$array->push($this->get($prop_name));
 			}
 		}
 		return $array;
+	}
+
+	public function clean_value($prop_name) {
+		$prop_value = isset($this->structure[$prop_name]['value']) ? $this->structure[$prop_name]['value'] : null;
+		if(($prop_value_cast = intval($prop_value)) !== 0 &&
+		   ($this->structure[$prop_name]['type']['name'] === 'integer' ||
+			$this->structure[$prop_name]['type']['name'] === 'numeric' ||
+			$this->structure[$prop_name]['type']['name'] === 'int')) $prop_value = $prop_value_cast;
+		return $prop_value;
 	}
 }

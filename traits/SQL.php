@@ -104,6 +104,11 @@ trait SQL {
 
 	abstract protected function connect(array $array): bool ;
 
+	/**
+	 * @param $request
+	 * @param array $params
+	 * @return SQL
+	 */
 	abstract public function query($request, $params = []);
 
 	abstract public function fetch_row();

@@ -159,6 +159,15 @@ class json {
 		var_dump($this->structure);
 	}
 
+	public function get_where($prop, $value, $current_class) {
+		$this->connection->query('SELECT * FROM `?table` WHERE `?prop`="?value"', [
+			'table' => $this->table,
+			'prop' => $prop,
+			'value' => $value,
+		]);
+		return $this->connection->fetch_object($current_class);
+	}
+
 	public function set_table($table) {
 		$this->table = $table;
 	}

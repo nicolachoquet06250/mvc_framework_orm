@@ -12,21 +12,20 @@ class IndexCallbacks {
 	 * @throws \ReflectionException
 	 */
 	public static function FetchObjectCallback($id, AccountContext $account) {
-		$account->to_array()->foreach(IndexCallbacks::class.'::FetchInterneCallback');
+//		var_dump($account->to_array()->get());
 		if($id === 1)
 			$account->set('pseudo', 'nouveau_pseudo2')
 					->update();
+
+		$__ = $account->get_where('pseudo', 'nouveau_pseudo2');
+
+		var_dump($__);
 	}
 
 	/**
 	 * @param ArrayContext $value
-	 * @throws \ReflectionException
 	 */
 	public static function FetchCallback(ArrayContext $value) {
-		$value->foreach(IndexCallbacks::class.'::FetchInterneCallback');
-	}
-
-	public static function FetchInterneCallback($key, $value) {
-		var_dump($key, $value);
+//		var_dump($value->get());
 	}
 }
