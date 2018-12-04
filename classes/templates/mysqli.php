@@ -14,7 +14,6 @@ class mysqli {
 		$this->set_username($username);
 		$this->set_password($password);
 		$this->set_db($db);
-		$this->to_array();
 	}
 
 	public function to_array() {
@@ -28,7 +27,7 @@ class mysqli {
 		}
 	}
 
-	public static function get($host, $username, $password, $db = null) {
+	public static function get($host = '', $username = '', $password = '', $db = null) {
 		return new mysqli($host, $username, $password, $db);
 	}
 
@@ -44,6 +43,7 @@ class mysqli {
 	 */
 	public function set_host(string $host) {
 		$this->host = $host;
+		$this->to_array();
 	}
 
 	/**
@@ -58,6 +58,7 @@ class mysqli {
 	 */
 	public function set_username(string $username) {
 		$this->username = $username;
+		$this->to_array();
 	}
 
 	/**
@@ -72,6 +73,7 @@ class mysqli {
 	 */
 	public function set_password(string $password) {
 		$this->password = $password;
+		$this->to_array();
 	}
 
 	/**
@@ -86,6 +88,7 @@ class mysqli {
 	 */
 	public function set_db($db) {
 		$this->db = $db;
+		$this->to_array();
 	}
 
 }

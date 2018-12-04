@@ -13,7 +13,6 @@ class json {
 		$this->set_base_directory($base_directory);
 		$this->set_host($host);
 		$this->set_database($database);
-		$this->to_array();
 	}
 
 	public function to_array() {
@@ -26,7 +25,7 @@ class json {
 		}
 	}
 
-	public static function get($base_directory, $host, $database = null) {
+	public static function get($base_directory = '', $host = '', $database = null) {
 		return new json($base_directory, $host, $database);
 	}
 
@@ -42,6 +41,7 @@ class json {
 	 */
 	public function set_base_directory($base_directory) {
 		$this->base_directory = $base_directory;
+		$this->to_array();
 	}
 
 	/**
@@ -56,6 +56,7 @@ class json {
 	 */
 	public function set_host($host) {
 		$this->host = $host;
+		$this->to_array();
 	}
 
 	/**
@@ -70,5 +71,6 @@ class json {
 	 */
 	public function set_database($database) {
 		$this->database = $database;
+		$this->to_array();
 	}
 }
